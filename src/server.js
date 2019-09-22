@@ -1,11 +1,11 @@
+// yarn diadraw
+
 var app = require('express')();
 // passa o express para o http-server
 var http = require('http').Server(app);
 // passa o http-server par ao socketio
 var io = require('socket.io')(http);
-
-
-const sEnderecoIp = '192.168.2.5';
+var os = require('os');
 
 const sMensagem       = 'sMSG';
 const sAddUser        = 'addUser';
@@ -17,7 +17,21 @@ const sApagar         = 'apagar';
 
 // cria uma rota para fornecer o arquivo index.html
 app.get('/', function(req, res){
-  res.send('Andrew');
+  var sRet = 'Servidor aberto em ';
+  var interfaces = os.networkInterfaces();
+  var addresses = [];
+  for (var k in interfaces) {
+      for (var k2 in interfaces[k]) {
+          var address = interfaces[k][k2];
+          if (address.family === 'IPv4' && !address.internal) {
+              addresses.push(address.address);
+          }
+      }
+  }
+  sRet += (addresses.map((sEl) => {
+    return sEl + ' ';
+  }));
+  res.send(sRet);
 });
 
 var iNumUsers = 0;
@@ -25,42 +39,17 @@ var iNumUsers = 0;
 // sempre que o socketio receber uma conexão vai realizar o broadcast dela
 io.on('connection', function(socket){
   var bConectado = false;
-  console.log('conectado');
 
   //quando o cliente emite 'sMSG', recebe e executa uma função
   socket.on(sMensagem, function(data) {
-
       //envia uma mensagem a todos os clientes conectados, inclusive o que envio a mensagem
       io.sockets.emit(sMensagem, {
         username: socket.username,
         msg     : data
       });
       //envia mensagem para todos que estão conectados, exceto o que envio a mensagem
-      /*socket.emit('sMSG', {
-        username: socket.username,
-        msg     : data
-      });*/
       console.log('envio');
   });
-
-
-
-  //quando o cliente emite 'sMSG', recebe e executa uma função
-  //socket.on('pontos', function(arg) {
-
-    //console.log(arg);
-      //envia uma mensagem a todos os clientes conectados, inclusive o que envio a mensagem
-      //io.sockets.emit('pontos', {
-       // username : socket.username,
-     //   caminho  : arg
-     // });
-      //envia mensagem para todos que estão conectados, exceto o que envio a mensagem
-      /*socket.emit('sMSG', {
-        username: socket.username,
-        msg     : data
-      });*/
-   //   console.log('envio');
- // });
     
   socket.on(sOPonto, function(data) {
     console.log(data);
@@ -87,19 +76,21 @@ io.on('connection', function(socket){
   });
 
   //recebe o evento de adicionar um usuario
-  socket.on(sAddUser, function(username) {
+  socket.on(sAddUser, function(username, color) {
       if(bConectado) {
         return;
       }
-      console.log(username);
+      console.log('Conectado: ' + username + ' com a cor ' + color +  ' via IP: '+ socket.handshake.address);
       socket.username = username;
+      socket.color    = color;
       bConectado      = true;
       iNumUsers++;
 
       console.log('numero de usuarios conectados ' + iNumUsers);
 
       socket.broadcast.emit(sUserConected, {
-        username: socket.username
+        username: socket.username,
+        color:    cor
       });
   }); 
 
@@ -118,6 +109,4 @@ io.on('connection', function(socket){
 });
 
 // inicia o servidor na porta informada, no caso, porta 3000
-http.listen(3000, sEnderecoIp, function() {
-  console.log(`Servidor rodando em: http://${sEnderecoIp}:3000`);
-});
+http.listen(3000);
