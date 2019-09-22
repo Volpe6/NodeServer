@@ -90,7 +90,7 @@ io.on('connection', function(socket){
 
       socket.broadcast.emit(sUserConected, {
         username: socket.username,
-        color:    cor
+        color:    color
       });
   }); 
 
