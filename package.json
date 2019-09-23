@@ -4,13 +4,16 @@
   "description": "",
   "main": "src/server.js",
   "scripts": {
-    "diadraw": "node src/server.js"
+    "diadraw": "nodemon src/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
+    "mocha": "^6.2.0",
+    "nodemon": "^1.19.2",
+    "nyc": "^14.1.1",
     "socket.io": "^2.2.0"
   }
 }

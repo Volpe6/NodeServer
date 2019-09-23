@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <title>Dia Draw</title>
+</head>
+<body>
+    <div>
+        <p>
+            Bem Vindo!<br/>
+            Conecte-se via o IP(s): <span id="ip"></span>
+            <script>
+            $.get('/ips', function(res){
+                $('#ip').html(res);
+            })
+            </script>
+        </p>
+    </div>
+</body>
+</html>
