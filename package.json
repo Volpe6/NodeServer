@@ -4,7 +4,8 @@
   "description": "",
   "main": "src/server.js",
   "scripts": {
-    "diadraw": "nodemon src/server.js"
+     "diadraw": "nodemon src/server.js"
+    ,"test":    "mocha"
   },
   "keywords": [],
   "author": "",
