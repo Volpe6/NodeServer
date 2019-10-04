@@ -36,4 +36,6 @@ io.on('connection', function(socket){
 });
 
 // inicia o servidor na porta informada, no caso, porta 3000
-http.listen(3000);
+http.listen(3000, function() {
+  console.log('servidor rodando na porta 3000');
+});

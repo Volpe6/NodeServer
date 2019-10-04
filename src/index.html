@@ -1,23 +1,191 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset='utf-8'>
-    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
-    <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <title>Dia Draw</title>
-</head>
-<body>
-    <div>
-        <p>
-            Bem Vindo!<br/>
-            Conecte-se via o IP(s): <span id="ip"></span>
-            <script>
-            $.get('/ips', function(res){
-                $('#ip').html(res);
-            })
-            </script>
-        </p>
-    </div>
-</body>
+	<head>
+		<meta charset='utf-8'>
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+		<meta name='viewport' content='width=device-width, initial-scale=1'>
+		<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script> 
+        <title>DiaDraw</title>
+        <style>
+            #cv {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            h1 {
+                text-align: center;
+            }
+        </style>
+    </head>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var oSocket = io();
+    </script>
+	<body>
+        <div>
+            <p>
+                Bem Vindo!<br/>
+                Conecte-se via o IP(s): <span id="ip"></span>
+                <script>
+                $.get('/ips', function(res){
+                    $('#ip').html(res);
+                })
+                </script>
+            </p>
+            <h1>Canvas</h1>
+            <div id="cv">
+                <canvas id="canvas" width="500px" height="500px" style="border: 1px solid black"></canvas>
+            </div>
+        </div>
+		
+        <script>
+            
+            const EVENTO_ADD_USER             = 'addUser';
+            const CRIA_PONTO_ORIGEM           = 'ponto_origem';
+            const CRIA_PONTO_DESTINO          = 'ponto_destino';
+            const APAGA_PONTO                 = 'apagar';
+            const BROADCAST_USUARIO_CONECTADO = 'uConectado';
+
+            const dvMain     = document.getElementById("div-main");
+            const cvCanvas   = document.getElementById("canvas");
+            const ctx        = cvCanvas.getContext("2d");
+            const iCorrecao  = cvCanvas.getBoundingClientRect(); 
+
+            let usuarios = new Map();
+
+            // usuarios.set("Name", new Usuario("Name", "red"));
+
+            // const correcaoY = 100;
+            // const correcaoX = 200;
+
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1;
+
+
+            // const oSocket = io.connect("http://localhost:3000");
+
+            let bMovendo = false;
+
+            // cvCanvas.id = "canvas";
+            // dvMain.appendChild(cvCanvas);
+
+            function moverPara(x, y) {
+                ctx.beginPath();
+                ctx.strokeStyle = "black";
+                console.log('MoverPara: x: ' + x, 'y: ' + y);
+                //oSocket.emit(CRIA_PONTO_DESTINO, {x: x, y: y});
+                ctx.moveTo(x, y);
+            }
+            
+            function linhaPara(x, y) {
+                // ctx.beginPath();
+                ctx.strokeStyle = "black";
+                console.log('LinhaPara: x: ' + x, 'y: ' + y);
+                //oSocket.emit(CRIA_PONTO_ORIGEM, {x: x, y: y});
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+            
+            function mousePressionado(e) {
+                bMovendo = true;
+                moverPara(e.clientX - iCorrecao.left, e.clientY - iCorrecao.top);
+            }
+            
+            function mouseSolto() {
+                bMovendo = false;
+            }
+            
+            function mouseMovendo(e) {
+                if(bMovendo) {
+                    linhaPara(e.clientX - iCorrecao.left, e.clientY - iCorrecao.top);
+                }
+            }
+                
+            cvCanvas.addEventListener("mousedown", mousePressionado);
+            cvCanvas.addEventListener("mousemove", mouseMovendo);
+            window.addEventListener("mouseup"  , mouseSolto);
+
+            oSocket.emit(EVENTO_ADD_USER, "AndrewAdm", -16776961);
+
+            oSocket.on(BROADCAST_USUARIO_CONECTADO, function(data) {
+                usuarios.set(data.username, new Usuario(data.username, "red"));
+            });
+
+            oSocket.on(CRIA_PONTO_ORIGEM, function(data) {
+                let usu = usuarios.get(data.username);
+                if(typeof usu === "undefined") {
+                    return;
+                }
+                usu.linhaPara(data.ponto.x, data.ponto.y);
+                // linhaPara(data.ponto.x, data.ponto.y);
+            });
+
+            oSocket.on(CRIA_PONTO_DESTINO, function(data) {
+                let usu = usuarios.get(data.username);
+                if(typeof usu === "undefined") {
+                    return;
+                }
+                usu.moverPara(data.ponto.x, data.ponto.y);
+            });
+
+            oSocket.on(APAGA_PONTO, function(data) {
+                let usu = usuarios.get(data.username);
+                if(typeof usu === "undefined") {
+                    return;
+                }
+                usu.apagar();
+            });
+
+            function Usuario(username, cor) {
+                this.username = username;
+                this.cor      = cor;
+                // this.pontosMoverPara = [];
+                // this.pontosLinhaPara = [];
+                this.ctx      = ctx;
+                this.ctx.fillStyle = cor;
+
+                this.moverPara = function(x, y) {
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = cor;
+                    this.ctx.moveTo(x, y);
+                    this.pontosMoverPara.push({x:x, y:y});
+                }
+
+                this.linhaPara =  function(x, y) {
+                    // this.ctx.beginPath();
+                    this.ctx.strokeStyle = cor;
+                    this.ctx.lineTo(x, y);
+                    this.ctx.stroke();
+                    this.pontosLinhaPara.push({x:x, y:y});
+                }
+
+                this.apagar = function() {
+                    // for(var i =0; i < this.pontosMoverPara.length; i++) {
+                    //     p = this.pontosMoverPara[i];
+                    //     this.ctx.clearRect(p.x-10, p.y-10, 30, 30);
+                    // }
+                    // for(var i =0; i < this.pontosLinhaPara.length; i++) {
+                    //     p = this.pontosLinhaPara[i];
+                    //     this.ctx.clearRect(p.x-10, p.y-10, 30, 30);
+                    // }
+                    this.ctx.clearRect(0, 0, cvCanvas.width, cvCanvas.height);
+                }
+            }
+
+            function draw() {
+                var ctx = document.getElementById('canvas').getContext('2d');
+                for (var i=0;i<6;i++){
+                for (var j=0;j<6;j++){
+                    ctx.strokeStyle = 'rgb(0,' + Math.floor(255-42.5*i) + ',' +
+                                    Math.floor(255-42.5*j) + ')';
+                    ctx.beginPath();
+                    ctx.arc(12.5+j*25,12.5+i*25,10,0,Math.PI*2,true);
+                    ctx.stroke();
+                }
+                }
+            }
+
+        </script>
+	</body>
 </html>
