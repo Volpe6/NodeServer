@@ -30,7 +30,7 @@ app.get('/ips', function(req, res){
 
 // sempre que o socketio receber uma conexão vai realizar o broadcast dela
 io.on('connection', function(socket){
-  desenho(socket);
+  desenho(socket, io);
   mensagem(socket, io);
   usuario(socket);
 });
