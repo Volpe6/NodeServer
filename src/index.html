@@ -13,6 +13,16 @@
                 align-items: center;
             }
 
+            .canv {
+                border: 1px solid black;
+                /* position: absolute; */
+                top: 7em;
+            }
+
+            .canv-master {
+                z-index: 100;
+            }
+
             h1 {
                 text-align: center;
             }
@@ -34,9 +44,9 @@
                 </script>
             </p>
             <h1>Canvas</h1>
-            <div id="cv">
+            <!-- <div id="cv">
                 <canvas id="canvas" width="500px" height="500px" style="border: 1px solid black"></canvas>
-            </div>
+            </div> -->
         </div>
 		
         <script>
@@ -44,23 +54,35 @@
             const EVENTO_ADD_USER             = 'addUser';
             const CRIA_PONTO_ORIGEM           = 'ponto_origem';
             const CRIA_PONTO_DESTINO          = 'ponto_destino';
+            const CRIA_PONTO_MOVIMENTO        = 'ponto_movimento'; 
             const APAGA_PONTO                 = 'apagar';
             const BROADCAST_USUARIO_CONECTADO = 'uConectado';
 
             const dvMain     = document.getElementById("div-main");
-            const cvCanvas   = document.getElementById("canvas");
+            const cvCanvas   = document.createElement('canvas');
             const ctx        = cvCanvas.getContext("2d");
-            const iCorrecao  = cvCanvas.getBoundingClientRect(); 
 
-            let usuarios = new Map();
 
-            // usuarios.set("Name", new Usuario("Name", "red"));
+            let usuarios  = new Map();
+            let divCanvas = document.createElement('div');
 
-            // const correcaoY = 100;
-            // const correcaoX = 200;
+            divCanvas.id = 'cv';
+            
+            cvCanvas.width  = 300;
+            cvCanvas.height = 300;
+            cvCanvas.classList.add('canv');
+            cvCanvas.classList.add('canv-master');
+
+            divCanvas.appendChild(cvCanvas);
 
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 1;
+
+            let corpo = document.querySelector('body div');
+            corpo.appendChild(divCanvas);
+            
+            const iCorrecao  = cvCanvas.getBoundingClientRect(); 
+            console.log(iCorrecao);
 
 
             // const oSocket = io.connect("http://localhost:3000");
@@ -74,6 +96,8 @@
                 ctx.beginPath();
                 ctx.strokeStyle = "black";
                 console.log('MoverPara: x: ' + x, 'y: ' + y);
+                oSocket.emit(CRIA_PONTO_ORIGEM, {x: x, y: y});
+
                 //oSocket.emit(CRIA_PONTO_DESTINO, {x: x, y: y});
                 ctx.moveTo(x, y);
             }
@@ -82,9 +106,9 @@
                 // ctx.beginPath();
                 ctx.strokeStyle = "black";
                 console.log('LinhaPara: x: ' + x, 'y: ' + y);
-                //oSocket.emit(CRIA_PONTO_ORIGEM, {x: x, y: y});
                 ctx.lineTo(x, y);
                 ctx.stroke();
+                oSocket.emit(CRIA_PONTO_MOVIMENTO, {x: x, y: y});
             }
             
             function mousePressionado(e) {
@@ -94,6 +118,7 @@
             
             function mouseSolto() {
                 bMovendo = false;
+                oSocket.emit(CRIA_PONTO_DESTINO);
             }
             
             function mouseMovendo(e) {
@@ -109,7 +134,7 @@
             oSocket.emit(EVENTO_ADD_USER, "AndrewAdm", -16776961);
 
             oSocket.on(BROADCAST_USUARIO_CONECTADO, function(data) {
-                usuarios.set(data.username, new Usuario(data.username, "red"));
+                usuarios.set(data.username, new Usuario(data.username, "red", divCanvas));
             });
 
             oSocket.on(CRIA_PONTO_ORIGEM, function(data) {
@@ -117,17 +142,25 @@
                 if(typeof usu === "undefined") {
                     return;
                 }
-                usu.linhaPara(data.ponto.x, data.ponto.y);
-                // linhaPara(data.ponto.x, data.ponto.y);
+                usu.moverPara(data.ponto.x, data.ponto.y);
+
             });
 
-            oSocket.on(CRIA_PONTO_DESTINO, function(data) {
+            oSocket.on(CRIA_PONTO_MOVIMENTO, function(data) {
                 let usu = usuarios.get(data.username);
                 if(typeof usu === "undefined") {
                     return;
                 }
-                usu.moverPara(data.ponto.x, data.ponto.y);
+                usu.linhaPara(data.ponto.x, data.ponto.y);
             });
+
+            // oSocket.on(CRIA_PONTO_DESTINO, function(data) {
+            //     let usu = usuarios.get(data.username);
+            //     if(typeof usu === "undefined") {
+            //         return;
+            //     }
+            //     usu.linhaPara();
+            // });
 
             oSocket.on(APAGA_PONTO, function(data) {
                 let usu = usuarios.get(data.username);
@@ -137,27 +170,52 @@
                 usu.apagar();
             });
 
-            function Usuario(username, cor) {
+            function Usuario(username, cor, divCv) {
+
+                este = this;    
+
+                this.cv = document.createElement('canvas');
+                this.cv.width  = 300;
+                this.cv.height = 300;
+                this.cv.classList.add('canv');
+
+                divCv.appendChild(this.cv);
+
                 this.username = username;
                 this.cor      = cor;
                 // this.pontosMoverPara = [];
                 // this.pontosLinhaPara = [];
-                this.ctx      = ctx;
+                this.ctx      = this.cv.getContext("2d");
+
                 this.ctx.fillStyle = cor;
+                this.cX = 0;
+                this.cY = 0; 
 
                 this.moverPara = function(x, y) {
-                    this.ctx.beginPath();
-                    this.ctx.strokeStyle = cor;
-                    this.ctx.moveTo(x, y);
-                    this.pontosMoverPara.push({x:x, y:y});
+                    este.ctx.beginPath();
+                    este.ctx.strokeStyle = cor;
+                    este.ctx.moveTo(x, y);
+                    este.cX = x;
+                    este.cY = y;
+                    console.log("mover para: " + x + ", " + y);
+                    // this.pontosMoverPara.push({x:x, y:y});
+                }
+
+                this.mover = function(x, y) {
+                    este.ctx.strokeStyle = cor;
+                    // este.ctx.quaTo(este.cX, este.cY, (x + este.cX)/2, ((y) + este.cY)/2);
+                    este.cX = x;
+                    este.cY = y;
+                    console.log("mover: " + x + ", " + y);
                 }
 
                 this.linhaPara =  function(x, y) {
                     // this.ctx.beginPath();
-                    this.ctx.strokeStyle = cor;
-                    this.ctx.lineTo(x, y);
-                    this.ctx.stroke();
-                    this.pontosLinhaPara.push({x:x, y:y});
+                    este.ctx.strokeStyle = cor;
+                    este.ctx.lineTo(x, y);
+                    este.ctx.stroke();
+                    console.log("linha para: " + x + ", " + y);
+                    // this.pontosLinhaPara.push({x:x, y:y});
                 }
 
                 this.apagar = function() {
@@ -169,7 +227,7 @@
                     //     p = this.pontosLinhaPara[i];
                     //     this.ctx.clearRect(p.x-10, p.y-10, 30, 30);
                     // }
-                    this.ctx.clearRect(0, 0, cvCanvas.width, cvCanvas.height);
+                    // this.ctx.clearRect(0, 0, cvCanvas.width, cvCanvas.height);
                 }
             }
 

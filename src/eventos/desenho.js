@@ -8,7 +8,7 @@ module.exports = function(socket, io){
     
     // Adiciona o evento de definir um ponto de origem.
     socket.on(CRIA_PONTO_ORIGEM, function(data) {
-        console.log(data);
+      console.log('Ponto origem: ' + data);
         socket.broadcast.emit(CRIA_PONTO_ORIGEM, {
             username : socket.username,
             ponto    : data
@@ -17,7 +17,7 @@ module.exports = function(socket, io){
     });
 
     socket.on(CRIA_PONTO_MOVIMENTO, function(data) {
-         console.log(data);
+         console.log('Ponto movimento: ' + data);
         socket.broadcast.emit(CRIA_PONTO_MOVIMENTO, {
           username : socket.username,
           ponto    : data
@@ -26,6 +26,7 @@ module.exports = function(socket, io){
     
     // Adiciona o evento de definir um ponto de destino.
     socket.on(CRIA_PONTO_DESTINO, function() {
+      console.log('Ponto destino');
       socket.broadcast.emit(CRIA_PONTO_DESTINO, {
         username : socket.username,
       }); 
