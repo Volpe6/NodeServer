@@ -9,14 +9,37 @@
         <style>
             #cv {
                 display: flex;
-                justify-content: center;
+                justify-content: flex-start;
+                position: relative;
                 align-items: center;
             }
 
+            #cv span {
+                position: absolute;
+                top: 0;
+            }
+
             .canv {
-                border: 1px solid black;
-                /* position: absolute; */
+                transform-origin: top left;
+                position: absolute;
+                top:10em;
+                left: 41%;
+                transform: scale(0.35); 
+                border: 2px solid black;
+            }
+
+            .canv-con {
+                transform-origin: top left;
                 top: 7em;
+                transform: scale(0.25); 
+                border: 2px solid black;
+            }
+
+            .div-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                grid-gap:10px;
+                padding: 10px;
             }
 
             .canv-master {
@@ -43,10 +66,8 @@
                 })
                 </script>
             </p>
-            <h1>Canvas</h1>
-            <!-- <div id="cv">
-                <canvas id="canvas" width="500px" height="500px" style="border: 1px solid black"></canvas>
-            </div> -->
+                <h1 id="t1">Canvas Modo NORMAL</h1>
+                <button id="btnalter" type="button">Alterar modo</button>
         </div>
 		
         <script>
@@ -57,6 +78,8 @@
             const CRIA_PONTO_MOVIMENTO        = 'ponto_movimento'; 
             const APAGA_PONTO                 = 'apagar';
             const BROADCAST_USUARIO_CONECTADO = 'uConectado';
+            const BROADCAST_USUARIO_DESCONECTADO = 'uDesconectado';
+            const MUNDANCA_PINTURA = 'mudanca_pintura';
 
             const dvMain     = document.getElementById("div-main");
             const cvCanvas   = document.createElement('canvas');
@@ -66,14 +89,18 @@
             let usuarios  = new Map();
             let divCanvas = document.createElement('div');
 
-            divCanvas.id = 'cv';
+            // divCanvas.id = 'cv';
+            divCanvas.style = "overflow-y: hidden; height: 25em;";
+            divCanvas.classList.add('div-grid');
             
-            cvCanvas.width  = 300;
-            cvCanvas.height = 300;
-            cvCanvas.classList.add('canv');
-            cvCanvas.classList.add('canv-master');
+            // cvCanvas.width  = 720;
+            // cvCanvas.height = 1280;
+            // // cvCanvas.style = "transform: scale(0.40); border: 2px solid black;";
 
-            divCanvas.appendChild(cvCanvas);
+            // cvCanvas.classList.add('canv');
+            // cvCanvas.classList.add('canv-master');
+
+            // divCanvas.appendChild(cvCanvas);
 
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 1;
@@ -91,6 +118,36 @@
 
             // cvCanvas.id = "canvas";
             // dvMain.appendChild(cvCanvas);
+
+            let sModo = 'NORMAL';
+            let btnAlter = document.querySelector('#btnalter');
+
+            btnAlter.addEventListener("click", alterarModo);
+
+            function alterarModo() {
+
+                let titulo = document.querySelector('#t1');
+
+                for(let usu of usuarios.values()) {
+                    usu.removerCanvas();
+                }
+
+                switch(sModo) {
+                    case 'NORMAL':
+                        titulo.innerHTML = "Canvas Modo CONTROLE";
+                        sModo = 'CONTROLE';
+                        break;
+                    case 'CONTROLE':
+                        titulo.innerHTML = "Canvas Modo NORMAL";
+                        sModo = 'NORMAL';
+                        break;
+                }
+                
+                for(let usu of usuarios.values()) {
+                    usu.setModo(sModo);
+                    usu.resetCanvas();
+                }
+            }
 
             function moverPara(x, y) {
                 ctx.beginPath();
@@ -127,14 +184,24 @@
                 }
             }
                 
-            cvCanvas.addEventListener("mousedown", mousePressionado);
-            cvCanvas.addEventListener("mousemove", mouseMovendo);
-            window.addEventListener("mouseup"  , mouseSolto);
+            // cvCanvas.addEventListener("mousedown", mousePressionado);
+            // cvCanvas.addEventListener("mousemove", mouseMovendo);
+            // window.addEventListener("mouseup"  , mouseSolto);
 
-            oSocket.emit(EVENTO_ADD_USER, "AndrewAdm", -16776961);
+            // oSocket.emit(EVENTO_ADD_USER, "AndrewAdm", -16776961);
 
+            oSocket.on(BROADCAST_USUARIO_DESCONECTADO, function(data){
+                let usu = usuarios.get(data.username);
+                if(typeof usu === "undefined") {
+                    return;
+                }
+                usu.removerCanvas();
+            })
+            
             oSocket.on(BROADCAST_USUARIO_CONECTADO, function(data) {
-                usuarios.set(data.username, new Usuario(data.username, "red", divCanvas));
+                sCor = Math.abs(parseInt(data.color)).toString(16);
+                console.log(sCor);
+                usuarios.set(data.username, new Usuario(data.username, '#' + sCor, divCanvas, sModo));
             });
 
             oSocket.on(CRIA_PONTO_ORIGEM, function(data) {
@@ -163,6 +230,8 @@
             // });
 
             oSocket.on(APAGA_PONTO, function(data) {
+                console.log("apaga " + data);
+                alert(data);
                 let usu = usuarios.get(data.username);
                 if(typeof usu === "undefined") {
                     return;
@@ -170,19 +239,51 @@
                 usu.apagar();
             });
 
-            function Usuario(username, cor, divCv) {
+            oSocket.on(MUNDANCA_PINTURA, function(data) {
+                console.log("Mundanca pintura " + data);
+                let usu = usuarios.get(data.username);
+                if(typeof usu === "undefined") {
+                    return;
+                }
+                usu.setTipoPintura(data.tipo.tipo);
+            });
 
-                este = this;    
+            function Usuario(username, cor, divCv, sModo) {
+
+                this.divMestre = divCv;
 
                 this.cv = document.createElement('canvas');
-                this.cv.width  = 300;
-                this.cv.height = 300;
-                this.cv.classList.add('canv');
+                this.cv.width  = 720;
+                this.cv.height = 1280;
+                // this.cv.style = "transform: scale(0.40); border: 2px solid black;";
 
-                divCv.appendChild(this.cv);
+                switch(sModo) {
+                    case 'NORMAL':
+                        this.cv.classList.remove('canv-con');
+                        this.cv.classList.add('canv');
+                        this.divMestre.appendChild(this.cv);
+                        break;
+                    case 'CONTROLE':
+                        this.cv.classList.remove('canv');
+                        this.cv.classList.add('canv-con');
+                        var span = document.createElement('span');
+                        span.innerHTML = username;
+                        
+                        var div = document.createElement('div');
+                        div.appendChild(span);
+                        div.appendChild(this.cv);
+                        div.style = 'width: 26em';
+
+                        // this.cv = cvCanvas;
+
+                        this.divMestre.appendChild(div);
+
+                        break;
+                }
 
                 this.username = username;
                 this.cor      = cor;
+                this.modo     = sModo;
                 // this.pontosMoverPara = [];
                 // this.pontosLinhaPara = [];
                 this.ctx      = this.cv.getContext("2d");
@@ -192,28 +293,28 @@
                 this.cY = 0; 
 
                 this.moverPara = function(x, y) {
-                    este.ctx.beginPath();
-                    este.ctx.strokeStyle = cor;
-                    este.ctx.moveTo(x, y);
-                    este.cX = x;
-                    este.cY = y;
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = cor;
+                    this.ctx.moveTo(x, y);
+                    this.cX = x;
+                    this.cY = y;
                     console.log("mover para: " + x + ", " + y);
                     // this.pontosMoverPara.push({x:x, y:y});
                 }
 
                 this.mover = function(x, y) {
-                    este.ctx.strokeStyle = cor;
+                    this.ctx.strokeStyle = cor;
                     // este.ctx.quaTo(este.cX, este.cY, (x + este.cX)/2, ((y) + este.cY)/2);
-                    este.cX = x;
-                    este.cY = y;
+                    this.cX = x;
+                    this.cY = y;
                     console.log("mover: " + x + ", " + y);
                 }
 
                 this.linhaPara =  function(x, y) {
                     // this.ctx.beginPath();
-                    este.ctx.strokeStyle = cor;
-                    este.ctx.lineTo(x, y);
-                    este.ctx.stroke();
+                    this.ctx.strokeStyle = cor;
+                    this.ctx.lineTo(x, y);
+                    this.ctx.stroke();
                     console.log("linha para: " + x + ", " + y);
                     // this.pontosLinhaPara.push({x:x, y:y});
                 }
@@ -228,6 +329,58 @@
                     //     this.ctx.clearRect(p.x-10, p.y-10, 30, 30);
                     // }
                     // this.ctx.clearRect(0, 0, cvCanvas.width, cvCanvas.height);
+                }
+
+                this.setTipoPintura = function(sTipo) {
+                    switch(sTipo) {
+                        case 'NORMAL':
+                            this.ctx.globalCompositeOperation = 'source-over';
+                            this.ctx.lineWidth = 1;
+                            break;
+                        case 'APAGAR':
+                            this.ctx.globalCompositeOperation = 'destination-out';
+                            this.ctx.lineWidth = 10;
+                            break;
+                    }
+                }
+
+                this.setModo = function(sModo) {
+                    this.modo = sModo;
+                }
+
+                this.resetCanvas = function() {
+                    switch(this.modo) {
+                        case 'NORMAL':
+                            this.cv.classList.remove('canv-con');
+                            this.cv.classList.add('canv');
+                            this.divMestre.appendChild(this.cv);
+                            break;
+                        case 'CONTROLE':
+                            this.cv.classList.remove('canv');
+                            this.cv.classList.add('canv-con');
+                            var span = document.createElement('span');
+                            span.innerHTML = this.username;
+                            
+                            var div = document.createElement('div');
+                            div.appendChild(span);
+                            div.appendChild(this.cv);
+                            div.style = 'width: 26em';
+
+                            this.divMestre.appendChild(div);
+
+                            break;
+                    }
+                }
+
+                this.removerCanvas = function() {
+                    switch(this.modo) {
+                        case 'NORMAL':
+                            this.cv.parentElement.removeChild(this.cv);
+                            break;
+                        case 'CONTROLE':
+                            this.cv.parentElement.parentElement.removeChild(this.cv.parentElement);
+                            break;
+                    }
                 }
             }
 
