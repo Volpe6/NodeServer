@@ -46,9 +46,121 @@
                 z-index: 100;
             }
 
-            h1 {
-                text-align: center;
+            /* grid area */
+
+            .grid-container {
+                display: grid;
+                grid-template-areas: 
+                    "ip      ip     ip     chat chat"
+                    "titulo  titulo titulo chat chat"
+                    "btn     btn    btn    chat chat";
+                grid-gap: 10px;
+                padding: 10px;
             }
+
+            .grid-item-1 {
+                grid-area: ip;
+            }
+
+            .grid-item-2 {
+                grid-area: chat;
+            }
+
+            .grid-item-3 {
+                grid-area: titulo;
+            }
+
+            .grid-item-4 {
+                grid-area: btn;
+            }
+
+            .grid-container-chat {
+                display: grid;
+                grid-template-areas: 
+                    'icone icone user user user user user'
+                    'icone icone mens mens mens mens mens';
+            }
+
+            .grid-item-chat-1 {
+                grid-area: icone;
+            }
+
+            .grid-item-chat-2 {
+                grid-area: user;
+            }
+
+            .grid-item-chat-3 {
+                grid-area: mens;
+            }
+            /* modo controler*/
+            .grid-container-con {
+                display: grid;
+                grid-template-areas: 
+                    'nome   nome   chat chat'
+                    'canvas canvas chat chat ';
+                grid-template-rows: 1em;
+                grid-template-columns: 5em 7.5em;
+            }
+
+            .grid-item-con-1 {
+                grid-area: nome;
+            }
+
+            .grid-item-con-2 {
+                grid-area: canvas;
+            }
+
+            .grid-item-con-3 {
+                grid-area: chat;
+            }
+
+            .div-chat-main {
+                width: 14em;
+                height: 12em;
+                overflow: auto;
+                margin-left: 44em;
+                border: 0.05em solid black;
+            }
+
+            .div-chat-main-con {
+                width: 14em;
+                height: 12em;
+                overflow: auto;
+                border: 0.05em solid black;
+            }
+
+            h1 {
+                text-align: left;
+            }
+
+            #chat-master { 
+                list-style-type: none; 
+                margin: 0; 
+                padding: 0; 
+            }
+
+            #chat-master li { 
+                padding: 5px 10px; 
+            }
+
+            #chat-master li:nth-child(odd) { 
+                background: #eee; 
+            }
+
+            .ul-chat-master { 
+                list-style-type: none; 
+                margin: 0; 
+                padding: 0; 
+            }
+
+            .ul-chat-master li { 
+                padding: 5px 10px; 
+            }
+
+            .ul-chat-master li:nth-child(odd) { 
+                background: #eee; 
+            }
+
         </style>
     </head>
     <script src="/socket.io/socket.io.js"></script>
@@ -57,34 +169,49 @@
     </script>
 	<body>
         <div>
-            <p>
-                Bem Vindo!<br/>
-                Conecte-se via o IP(s): <span id="ip"></span>
-                <script>
-                $.get('/ips', function(res){
-                    $('#ip').html(res);
-                })
-                </script>
-            </p>
-                <h1 id="t1">Canvas Modo NORMAL</h1>
-                <button id="btnalter" type="button">Alterar modo</button>
+            <div class="grid-container">
+                <div class="grid-item-1">
+                    <p>
+                        Bem Vindo!<br/>
+                        Conecte-se via o IP(s): <span id="ip"></span>
+                        <script>
+                        $.get('/ips', function(res){
+                            $('#ip').html(res);
+                        })
+                        </script>
+                    </p>
+                </div>
+                <div class="grid-item-2">
+                    <div class="div-chat-main">
+                        <ul id="chat-master"></ul>
+                        <span>chat</span>
+                    </div>
+                </div>
+                <div class="grid-item-3">
+                    <h1 id="t1">Canvas Modo NORMAL</h1>
+                </div>
+                <div class="gird-item-4">
+                    <button id="btnalter" type="button">Alterar modo</button>
+                </div>
+            </div>
         </div>
 		
         <script>
             
-            const EVENTO_ADD_USER             = 'addUser';
-            const CRIA_PONTO_ORIGEM           = 'ponto_origem';
-            const CRIA_PONTO_DESTINO          = 'ponto_destino';
-            const CRIA_PONTO_MOVIMENTO        = 'ponto_movimento'; 
-            const APAGA_PONTO                 = 'apagar';
-            const BROADCAST_USUARIO_CONECTADO = 'uConectado';
+            const EVENTO_ADD_USER                = 'addUser';
+            const CRIA_PONTO_ORIGEM              = 'ponto_origem';
+            const CRIA_PONTO_DESTINO             = 'ponto_destino';
+            const CRIA_PONTO_MOVIMENTO           = 'ponto_movimento'; 
+            const APAGA_PONTO                    = 'apagar';
+            const BROADCAST_USUARIO_CONECTADO    = 'uConectado';
             const BROADCAST_USUARIO_DESCONECTADO = 'uDesconectado';
-            const MUNDANCA_PINTURA = 'mudanca_pintura';
+            const MUNDANCA_PINTURA               = 'mudanca_pintura';
+            const MENSAGEM_RECEBIMENTO           = 'sMSG';
 
             const dvMain     = document.getElementById("div-main");
             const cvCanvas   = document.createElement('canvas');
             const ctx        = cvCanvas.getContext("2d");
-
+            const chatMaster = document.querySelector('#chat-master');
 
             let usuarios  = new Map();
             let divCanvas = document.createElement('div');
@@ -149,6 +276,36 @@
                 }
             }
 
+            function anexarMensagem(sNome, sMsg) {
+                let li      = document.createElement('li');
+                let divPr   = document.createElement('div');
+                let divIcon = document.createElement('div');
+                let divUser = document.createElement('div');
+                let divMens = document.createElement('div');
+                let p       = document.createElement('p');
+
+
+                divPr.classList.add('grid-container-chat');
+                divIcon.classList.add('grid-item-chat-1');
+                divUser.classList.add('grid-item-chat-2');
+                divMens.classList.add('grid-item-chat-3');
+
+                divIcon.innerHTML =   '<svg width="2em" height="2em"></svg>';
+
+                divUser.innerHTML = sNome;
+                p.style = 'margin: 0px';
+                p.innerHTML = sMsg;
+                divMens.appendChild(p);
+
+                divPr.appendChild(divIcon);
+                divPr.appendChild(divUser);
+                divPr.appendChild(divMens);
+
+                li.append(divPr);
+
+                chatMaster.appendChild(li);
+            }
+
             function moverPara(x, y) {
                 ctx.beginPath();
                 ctx.strokeStyle = "black";
@@ -189,6 +346,15 @@
             // window.addEventListener("mouseup"  , mouseSolto);
 
             // oSocket.emit(EVENTO_ADD_USER, "AndrewAdm", -16776961);
+
+            //quando o cliente emite 'sMSG', recebe e executa uma função
+            oSocket.on(MENSAGEM_RECEBIMENTO, function(data) {
+                anexarMensagem(data.username, data.msg);
+                let usu = usuarios.get(data.username);
+                if(typeof usu !== "undefined") {
+                    usu.anexarMensagemUsu(data.msg);
+                }
+            });
 
             oSocket.on(BROADCAST_USUARIO_DESCONECTADO, function(data){
                 let usu = usuarios.get(data.username);
@@ -257,6 +423,11 @@
                 this.cv.height = 1280;
                 // this.cv.style = "transform: scale(0.40); border: 2px solid black;";
 
+                this.ulChat    = document.createElement('ul');
+
+                this.username = username;
+
+
                 switch(sModo) {
                     case 'NORMAL':
                         this.cv.classList.remove('canv-con');
@@ -266,31 +437,55 @@
                     case 'CONTROLE':
                         this.cv.classList.remove('canv');
                         this.cv.classList.add('canv-con');
+                        this.cv.classList.add('grid-item-con-2');
+
                         var span = document.createElement('span');
-                        span.innerHTML = username;
+
+                        span.classList.add('grid-item-con-1');
+                        span.innerHTML = this.username;
                         
+                        //chat
+                        var divChatMaster = document.createElement('div');
+                        var divChat       = document.createElement('div');
+
+                        this.ulChat.classList.add('ul-chat-master');
+                        divChat.classList.add('div-chat-main-con');
+                        divChatMaster.classList.add('grid-item-con-3');
+
+                        divChat.appendChild(this.ulChat);
+                        divChatMaster.appendChild(divChat);
+
+                        if(typeof this.mensagens !== 'undefined') {
+                            for(let i = 0; i < this.mensagens.length; i++ ) {
+                                appendMensagem(this.username, this.mensagens[i], this.ulChat);
+                            }
+                        }
                         var div = document.createElement('div');
+
+                        div.classList.add('grid-container-con');
+
                         div.appendChild(span);
                         div.appendChild(this.cv);
+                        div.appendChild(divChat);
                         div.style = 'width: 26em';
-
-                        // this.cv = cvCanvas;
 
                         this.divMestre.appendChild(div);
 
                         break;
                 }
 
-                this.username = username;
                 this.cor      = cor;
                 this.modo     = sModo;
                 // this.pontosMoverPara = [];
                 // this.pontosLinhaPara = [];
                 this.ctx      = this.cv.getContext("2d");
 
+                this.ctx.lineWidth = 3;
                 this.ctx.fillStyle = cor;
                 this.cX = 0;
                 this.cY = 0; 
+
+                this.mensagens = [];
 
                 this.moverPara = function(x, y) {
                     this.ctx.beginPath();
@@ -319,23 +514,11 @@
                     // this.pontosLinhaPara.push({x:x, y:y});
                 }
 
-                this.apagar = function() {
-                    // for(var i =0; i < this.pontosMoverPara.length; i++) {
-                    //     p = this.pontosMoverPara[i];
-                    //     this.ctx.clearRect(p.x-10, p.y-10, 30, 30);
-                    // }
-                    // for(var i =0; i < this.pontosLinhaPara.length; i++) {
-                    //     p = this.pontosLinhaPara[i];
-                    //     this.ctx.clearRect(p.x-10, p.y-10, 30, 30);
-                    // }
-                    // this.ctx.clearRect(0, 0, cvCanvas.width, cvCanvas.height);
-                }
-
                 this.setTipoPintura = function(sTipo) {
                     switch(sTipo) {
                         case 'NORMAL':
                             this.ctx.globalCompositeOperation = 'source-over';
-                            this.ctx.lineWidth = 1;
+                            this.ctx.lineWidth = 3;
                             break;
                         case 'APAGAR':
                             this.ctx.globalCompositeOperation = 'destination-out';
@@ -352,22 +535,61 @@
                     switch(this.modo) {
                         case 'NORMAL':
                             this.cv.classList.remove('canv-con');
+                            this.cv.classList.remove('grid-item-con-2');
                             this.cv.classList.add('canv');
                             this.divMestre.appendChild(this.cv);
                             break;
                         case 'CONTROLE':
                             this.cv.classList.remove('canv');
                             this.cv.classList.add('canv-con');
+                            this.cv.classList.add('grid-item-con-2');
+
                             var span = document.createElement('span');
+
+                            span.classList.add('grid-item-con-1');
                             span.innerHTML = this.username;
                             
+                            //chat
+                            var divChatMaster = document.createElement('div');
+                            var divChat       = document.createElement('div');
+
+                            this.ulChat = document.createElement('ul');
+                            this.ulChat.classList.add('ul-chat-master');
+                            divChat.classList.add('div-chat-main-con');
+                            divChatMaster.classList.add('grid-item-con-3');
+
+                            divChat.appendChild(this.ulChat);
+                            divChatMaster.appendChild(divChat);
+
+                            if(typeof this.mensagens !== 'undefined') {
+                                for(let i = 0; i < this.mensagens.length; i++ ) {
+                                    appendMensagem(this.username, this.mensagens[i], this.ulChat);
+                                }
+                            }
+
                             var div = document.createElement('div');
+
+                            div.classList.add('grid-container-con');
+
                             div.appendChild(span);
                             div.appendChild(this.cv);
+                            div.appendChild(divChat);
                             div.style = 'width: 26em';
 
                             this.divMestre.appendChild(div);
 
+                            break;
+                    }
+                }
+
+                this.anexarMensagemUsu = function(sMens) {
+                    switch(this.modo) {
+                        case 'NORMAL':
+                            this.mensagens.push(sMens);
+                            break;
+                        case 'CONTROLE':
+                            appendMensagem(this.username, sMens, this.ulChat);
+                            this.mensagens.push(sMens);
                             break;
                     }
                 }
@@ -382,18 +604,47 @@
                             break;
                     }
                 }
+
+                function appendMensagem(sNome, sMsg, ulChat) {
+                    let li      = document.createElement('li');
+                    let divPr   = document.createElement('div');
+                    let divIcon = document.createElement('div');
+                    let divUser = document.createElement('div');
+                    let divMens = document.createElement('div');
+                    let p       = document.createElement('p');
+
+                    divPr.classList.add('grid-container-chat');
+                    divIcon.classList.add('grid-item-chat-1');
+                    divUser.classList.add('grid-item-chat-2');
+                    divMens.classList.add('grid-item-chat-3');
+
+                    divIcon.innerHTML =   '<svg width="2em" height="2em"></svg>';
+
+                    divUser.innerHTML = sNome;
+                    p.style = 'margin: 0px';
+                    p.innerHTML = sMsg;
+                    divMens.appendChild(p);
+
+                    divPr.appendChild(divIcon);
+                    divPr.appendChild(divUser);
+                    divPr.appendChild(divMens);
+
+                    li.append(divPr);
+
+                    ulChat.appendChild(li);
+                }
             }
 
             function draw() {
                 var ctx = document.getElementById('canvas').getContext('2d');
                 for (var i=0;i<6;i++){
-                for (var j=0;j<6;j++){
-                    ctx.strokeStyle = 'rgb(0,' + Math.floor(255-42.5*i) + ',' +
-                                    Math.floor(255-42.5*j) + ')';
-                    ctx.beginPath();
-                    ctx.arc(12.5+j*25,12.5+i*25,10,0,Math.PI*2,true);
-                    ctx.stroke();
-                }
+                    for (var j=0;j<6;j++){
+                        ctx.strokeStyle = 'rgb(0,' + Math.floor(255-42.5*i) + ',' +
+                                        Math.floor(255-42.5*j) + ')';
+                        ctx.beginPath();
+                        ctx.arc(12.5+j*25,12.5+i*25,10,0,Math.PI*2,true);
+                        ctx.stroke();
+                    }
                 }
             }
 
